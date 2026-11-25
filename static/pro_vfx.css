@@ -1,0 +1,640 @@
+/* ==========================================================================
+   ORCHESTRA AI — OLED-SAFE CINEMATIC 3D WAR-ROOM VISUAL & CFX UPGRADE
+   Palette: Deep Obsidian + Smoked Specular Glass + Restrained Telemetry Accents
+   ========================================================================== */
+
+:root {
+  --vfx-obsidian-0: #080A10;
+  --vfx-obsidian-1: #0B0E15;
+  --vfx-obsidian-2: #101522;
+
+  --vfx-glass-0: rgba(18, 24, 36, 0.80);   /* #121824 */
+  --vfx-glass-1: rgba(23, 31, 45, 0.78);   /* #171F2D */
+  --vfx-glass-2: rgba(27, 37, 52, 0.72);   /* #1B2534 */
+
+  --vfx-text-primary: #F1F5FC;
+  --vfx-text-secondary: #AAB6C8;
+
+  --vfx-cyan: #54D9FF;
+  --vfx-cyan-rgb: 84, 217, 255;
+  --vfx-ice: #398BFF;
+  --vfx-ice-rgb: 57, 139, 255;
+  --vfx-violet: #9B83FF;
+  --vfx-violet-rgb: 155, 131, 255;
+  --vfx-amber: #E5B96C;
+  --vfx-amber-rgb: 229, 185, 108;
+  --vfx-emerald: #34D399;
+  --vfx-emerald-rgb: 52, 211, 153;
+
+  --vfx-rim-neutral: rgba(170, 182, 200, 0.14);
+  --vfx-rim-specular: rgba(241, 245, 252, 0.22);
+  --vfx-radius-lg: 16px;
+  --vfx-radius-md: 12px;
+  --vfx-ease-cinematic: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Base OLED Obsidian Canvas & Typography Crispness */
+html,
+body {
+  background-color: var(--vfx-obsidian-0);
+  color: var(--vfx-text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* 1. Full-Screen WebGL2 Atmospheric Obsidian Void Canvas */
+#vfx-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 0;
+  pointer-events: none;
+  display: block;
+  background: radial-gradient(
+    ellipse 85% 65% at 50% 28%,
+    var(--vfx-obsidian-2) 0%,
+    var(--vfx-obsidian-1) 48%,
+    var(--vfx-obsidian-0) 100%
+  );
+  will-change: transform;
+}
+
+/* Keep War-Room Interactive Surfaces Cleanly Above Void & Link Canvases */
+.orchestra-workspace {
+  position: relative;
+}
+
+.vfx-warroom-links {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+#comms-topology,
+#boss-plan-card,
+#worker-card-worker_1,
+#worker-card-worker_2,
+#worker-card-worker_3,
+#boss-merge-card {
+  position: relative;
+  z-index: 2;
+}
+
+/* ==========================================================================
+   SMOKED OBSIDIAN GLASS CARD ARCHITECTURE
+   ========================================================================== */
+#boss-plan-card,
+#worker-card-worker_1,
+#worker-card-worker_2,
+#worker-card-worker_3,
+#boss-merge-card {
+  --card-accent: var(--vfx-cyan);
+  --card-accent-rgb: var(--vfx-cyan-rgb);
+  --mx: 50%;
+  --my: 0%;
+  background:
+    radial-gradient(
+      420px circle at var(--mx) var(--my),
+      rgba(var(--card-accent-rgb), 0.075) 0%,
+      rgba(var(--card-accent-rgb), 0.015) 42%,
+      transparent 72%
+    ),
+    linear-gradient(
+      165deg,
+      var(--vfx-glass-2) 0%,
+      var(--vfx-glass-1) 34%,
+      var(--vfx-glass-0) 100%
+    );
+  backdrop-filter: blur(18px) saturate(122%);
+  -webkit-backdrop-filter: blur(18px) saturate(122%);
+  border: 1px solid var(--vfx-rim-neutral);
+  border-radius: var(--vfx-radius-lg);
+  color: var(--vfx-text-primary);
+  box-shadow:
+    0 20px 44px -18px rgba(3, 5, 9, 0.88),
+    0 4px 14px -4px rgba(3, 5, 9, 0.72),
+    inset 0 1px 0 0 rgba(241, 245, 252, 0.13),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+  overflow: hidden;
+  transition:
+    border-color 420ms var(--vfx-ease-cinematic),
+    box-shadow 420ms var(--vfx-ease-cinematic),
+    transform 420ms var(--vfx-ease-cinematic);
+  isolation: isolate;
+}
+
+/* Razor-thin Specular Top-Edge Rim Light */
+#boss-plan-card::before,
+#worker-card-worker_1::before,
+#worker-card-worker_2::before,
+#worker-card-worker_3::before,
+#boss-merge-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  pointer-events: none;
+  z-index: 3;
+  background: linear-gradient(
+    135deg,
+    rgba(241, 245, 252, 0.22) 0%,
+    rgba(var(--card-accent-rgb), 0.34) 24%,
+    rgba(170, 182, 200, 0.06) 58%,
+    rgba(var(--card-accent-rgb), 0.12) 100%
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  opacity: 0.72;
+  transition: opacity 420ms var(--vfx-ease-cinematic);
+}
+
+#boss-plan-card:hover::before,
+#worker-card-worker_1:hover::before,
+#worker-card-worker_2:hover::before,
+#worker-card-worker_3:hover::before,
+#boss-merge-card:hover::before {
+  opacity: 0.96;
+}
+
+/* Keep All Existing Card Content Above Procedural Canvas Backdrops */
+#boss-plan-card > *:not(.vfx-layer),
+#worker-card-worker_1 > *:not(.vfx-layer),
+#worker-card-worker_2 > *:not(.vfx-layer),
+#worker-card-worker_3 > *:not(.vfx-layer),
+#boss-merge-card > *:not(.vfx-layer) {
+  position: relative;
+  z-index: 2;
+}
+
+/* High-Contrast Eye-Friendly Typography Inside Cards */
+#boss-plan-card p,
+#worker-card-worker_1 p,
+#worker-card-worker_2 p,
+#worker-card-worker_3 p,
+#boss-merge-card p,
+#boss-plan-card .subtitle,
+#boss-merge-card .subtitle,
+.worker-chatlog {
+  color: var(--vfx-text-primary);
+}
+
+#boss-plan-card small,
+#worker-card-worker_1 small,
+#worker-card-worker_2 small,
+#worker-card-worker_3 small,
+#boss-merge-card small,
+#comms-topology small {
+  color: var(--vfx-text-secondary);
+}
+
+/* ==========================================================================
+   CENTRAL BOSS PLAN CARD + HOLOGRAPHIC SPHERICAL CORE BACKDROP
+   ========================================================================== */
+#boss-plan-card {
+  --card-accent: var(--vfx-cyan);
+  --card-accent-rgb: var(--vfx-cyan-rgb);
+}
+
+.vfx-boss-core-wrap {
+  position: absolute;
+  top: -22px;
+  right: 8px;
+  width: 168px;
+  height: 168px;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.92;
+  -webkit-mask-image: radial-gradient(circle at 50% 50%, #000 54%, transparent 78%);
+  mask-image: radial-gradient(circle at 50% 50%, #000 54%, transparent 78%);
+  transition: opacity 500ms var(--vfx-ease-cinematic), transform 600ms var(--vfx-ease-cinematic);
+}
+
+.vfx-boss-core-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Stage-Responsive Boss Plan Rim Accent */
+body.stage-boss_plan #boss-plan-card,
+.stage-boss_plan #boss-plan-card,
+#boss-plan-card.stage-boss_plan {
+  border-color: rgba(var(--vfx-cyan-rgb), 0.36);
+  box-shadow:
+    0 22px 48px -18px rgba(3, 5, 9, 0.92),
+    0 0 28px -10px rgba(var(--vfx-cyan-rgb), 0.24),
+    inset 0 1px 0 0 rgba(var(--vfx-cyan-rgb), 0.26);
+}
+
+/* ==========================================================================
+   3 THINKER WORKER CARDS + STREAMING WAVEFORM + SCROLLABLE CHATLOGS
+   ========================================================================== */
+#worker-card-worker_1 {
+  --card-accent: var(--vfx-cyan);
+  --card-accent-rgb: var(--vfx-cyan-rgb);
+}
+
+#worker-card-worker_2 {
+  --card-accent: var(--vfx-violet);
+  --card-accent-rgb: var(--vfx-violet-rgb);
+}
+
+#worker-card-worker_3 {
+  --card-accent: var(--vfx-ice);
+  --card-accent-rgb: var(--vfx-ice-rgb);
+}
+
+/* Localized Active Rim During Worker Draft & Crosstalk */
+body.stage-worker_draft #worker-card-worker_1,
+body.stage-worker_draft #worker-card-worker_2,
+body.stage-worker_draft #worker-card-worker_3,
+body.stage-worker_crosstalk #worker-card-worker_1,
+body.stage-worker_crosstalk #worker-card-worker_2,
+body.stage-worker_crosstalk #worker-card-worker_3,
+.vfx-worker-active {
+  border-color: rgba(var(--card-accent-rgb), 0.34);
+  box-shadow:
+    0 20px 44px -18px rgba(3, 5, 9, 0.9),
+    0 0 24px -10px rgba(var(--card-accent-rgb), 0.22),
+    inset 0 1px 0 0 rgba(var(--card-accent-rgb), 0.24);
+}
+
+/* Subtle Streaming Waveform Ribbon (Non-Obstructive Header Edge) */
+.vfx-waveform-host {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 24px;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.45;
+  transition: opacity 420ms var(--vfx-ease-cinematic);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 10%, #000 90%, transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0%, #000 10%, #000 90%, transparent 100%);
+}
+
+body.stage-worker_draft .vfx-waveform-host,
+body.stage-worker_crosstalk .vfx-waveform-host,
+.vfx-worker-active .vfx-waveform-host {
+  opacity: 0.95;
+}
+
+.vfx-waveform-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Scrollable Worker Chatlog — OLED Comfort & Precision Scrollbars */
+.worker-chatlog {
+  background: linear-gradient(
+    180deg,
+    rgba(8, 10, 16, 0.56) 0%,
+    rgba(11, 14, 21, 0.68) 100%
+  );
+  border: 1px solid rgba(170, 182, 200, 0.08);
+  border-radius: var(--vfx-radius-md);
+  color: var(--vfx-text-primary);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(var(--card-accent-rgb), 0.32) transparent;
+}
+
+.worker-chatlog::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+.worker-chatlog::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.worker-chatlog::-webkit-scrollbar-thumb {
+  background: rgba(var(--card-accent-rgb), 0.28);
+  border-radius: 999px;
+}
+
+.worker-chatlog::-webkit-scrollbar-thumb:hover {
+  background: rgba(var(--card-accent-rgb), 0.52);
+}
+
+/* ==========================================================================
+   FINALISED BOSS VERDICT CARD (#boss-merge-card) + EMERALD SHOCKWAVE
+   ========================================================================== */
+#boss-merge-card {
+  --card-accent: var(--vfx-amber);
+  --card-accent-rgb: var(--vfx-amber-rgb);
+  background:
+    radial-gradient(
+      520px circle at var(--mx) var(--my),
+      rgba(var(--vfx-amber-rgb), 0.085) 0%,
+      rgba(var(--vfx-emerald-rgb), 0.02) 44%,
+      transparent 74%
+    ),
+    linear-gradient(
+      165deg,
+      rgba(27, 35, 48, 0.80) 0%,
+      rgba(21, 27, 39, 0.82) 42%,
+      rgba(16, 21, 31, 0.88) 100%
+    );
+}
+
+body.stage-boss_merge #boss-merge-card,
+.stage-boss_merge #boss-merge-card,
+#boss-merge-card.vfx-merge-converged {
+  border-color: rgba(var(--vfx-amber-rgb), 0.44);
+  box-shadow:
+    0 24px 52px -18px rgba(3, 5, 9, 0.94),
+    0 0 32px -10px rgba(var(--vfx-amber-rgb), 0.26),
+    0 0 22px -12px rgba(var(--vfx-emerald-rgb), 0.24),
+    inset 0 1px 0 0 rgba(var(--vfx-amber-rgb), 0.34);
+}
+
+.vfx-shockwave-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+.vfx-shockwave-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* ==========================================================================
+   COMMS TOPOLOGY NODE STAGE (#comms-topology) & HOLOGRAPHIC MEDALLIONS
+   ========================================================================== */
+#comms-topology {
+  background:
+    radial-gradient(
+      ellipse 78% 68% at 50% 42%,
+      rgba(23, 31, 45, 0.68) 0%,
+      rgba(16, 21, 34, 0.72) 55%,
+      rgba(11, 14, 21, 0.82) 100%
+    );
+  backdrop-filter: blur(16px) saturate(118%);
+  -webkit-backdrop-filter: blur(16px) saturate(118%);
+  border: 1px solid var(--vfx-rim-neutral);
+  border-radius: var(--vfx-radius-lg);
+  box-shadow:
+    0 20px 46px -20px rgba(3, 5, 9, 0.92),
+    inset 0 1px 0 0 rgba(241, 245, 252, 0.11);
+  overflow: hidden;
+  isolation: isolate;
+}
+
+/* Subtle Architectural Perspective Micro-Grid on Stage Floor */
+#comms-topology::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.26;
+  background-image:
+    linear-gradient(to right, rgba(170, 182, 200, 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(170, 182, 200, 0.06) 1px, transparent 1px);
+  background-size: 36px 36px;
+  -webkit-mask-image: radial-gradient(ellipse 72% 72% at 50% 50%, #000 20%, transparent 82%);
+  mask-image: radial-gradient(ellipse 72% 72% at 50% 50%, #000 20%, transparent 82%);
+}
+
+/* Procedural Plasma Filament Canvas Overlay */
+.vfx-topology-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none;
+  display: block;
+}
+
+/* Topology Nodes Elevated Above Filaments */
+#topo-boss,
+#topo-w1,
+#topo-w2,
+#topo-w3 {
+  --node-accent: var(--vfx-cyan);
+  --node-accent-rgb: var(--vfx-cyan-rgb);
+  position: relative;
+  z-index: 2;
+  background: linear-gradient(
+    160deg,
+    rgba(27, 37, 52, 0.92) 0%,
+    rgba(18, 24, 36, 0.94) 65%,
+    rgba(11, 14, 21, 0.96) 100%
+  );
+  border: 1px solid rgba(var(--node-accent-rgb), 0.28);
+  color: var(--vfx-text-primary);
+  box-shadow:
+    0 10px 24px -10px rgba(3, 5, 9, 0.9),
+    inset 0 1px 0 0 rgba(241, 245, 252, 0.16),
+    0 0 18px -8px rgba(var(--node-accent-rgb), 0.24);
+  transition:
+    transform 420ms var(--vfx-ease-cinematic),
+    border-color 420ms var(--vfx-ease-cinematic),
+    box-shadow 420ms var(--vfx-ease-cinematic);
+}
+
+#topo-boss {
+  --node-accent: var(--vfx-amber);
+  --node-accent-rgb: var(--vfx-amber-rgb);
+}
+
+#topo-w1 {
+  --node-accent: var(--vfx-cyan);
+  --node-accent-rgb: var(--vfx-cyan-rgb);
+}
+
+#topo-w2 {
+  --node-accent: var(--vfx-violet);
+  --node-accent-rgb: var(--vfx-violet-rgb);
+}
+
+#topo-w3 {
+  --node-accent: var(--vfx-ice);
+  --node-accent-rgb: var(--vfx-ice-rgb);
+}
+
+/* Precision Specular Halo Ring on Active Nodes */
+#topo-boss::after,
+#topo-w1::after,
+#topo-w2::after,
+#topo-w3::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  border: 1px solid rgba(var(--node-accent-rgb), 0);
+  pointer-events: none;
+  transition:
+    border-color 420ms var(--vfx-ease-cinematic),
+    transform 420ms var(--vfx-ease-cinematic),
+    opacity 420ms var(--vfx-ease-cinematic);
+  opacity: 0;
+}
+
+/* Stage-Driven Topology Telemetry Emphasis */
+#comms-topology.stage-boss_plan #topo-boss,
+body.stage-boss_plan #topo-boss {
+  border-color: rgba(var(--vfx-cyan-rgb), 0.65);
+  transform: translateY(-1px) scale(1.03);
+  box-shadow:
+    0 12px 28px -10px rgba(3, 5, 9, 0.92),
+    0 0 26px -6px rgba(var(--vfx-cyan-rgb), 0.42),
+    inset 0 1px 0 0 rgba(241, 245, 252, 0.28);
+}
+
+#comms-topology.stage-boss_plan #topo-boss::after,
+body.stage-boss_plan #topo-boss::after {
+  border-color: rgba(var(--vfx-cyan-rgb), 0.42);
+  opacity: 1;
+  animation: vfx-node-breathe 2.6s var(--vfx-ease-cinematic) infinite;
+}
+
+#comms-topology.stage-worker_draft #topo-w1,
+#comms-topology.stage-worker_draft #topo-w2,
+#comms-topology.stage-worker_draft #topo-w3,
+body.stage-worker_draft #topo-w1,
+body.stage-worker_draft #topo-w2,
+body.stage-worker_draft #topo-w3 {
+  border-color: rgba(var(--node-accent-rgb), 0.62);
+  transform: translateY(-1px) scale(1.025);
+  box-shadow:
+    0 12px 26px -10px rgba(3, 5, 9, 0.92),
+    0 0 24px -7px rgba(var(--node-accent-rgb), 0.38),
+    inset 0 1px 0 0 rgba(241, 245, 252, 0.24);
+}
+
+#comms-topology.stage-worker_draft #topo-w1::after,
+#comms-topology.stage-worker_draft #topo-w2::after,
+#comms-topology.stage-worker_draft #topo-w3::after,
+body.stage-worker_draft #topo-w1::after,
+body.stage-worker_draft #topo-w2::after,
+body.stage-worker_draft #topo-w3::after {
+  border-color: rgba(var(--node-accent-rgb), 0.36);
+  opacity: 1;
+  animation: vfx-node-breathe 2.2s var(--vfx-ease-cinematic) infinite;
+}
+
+#comms-topology.stage-worker_crosstalk #topo-w1,
+#comms-topology.stage-worker_crosstalk #topo-w2,
+#comms-topology.stage-worker_crosstalk #topo-w3,
+body.stage-worker_crosstalk #topo-w1,
+body.stage-worker_crosstalk #topo-w2,
+body.stage-worker_crosstalk #topo-w3 {
+  border-color: rgba(var(--node-accent-rgb), 0.72);
+  transform: scale(1.03);
+  box-shadow:
+    0 12px 28px -10px rgba(3, 5, 9, 0.92),
+    0 0 28px -6px rgba(var(--node-accent-rgb), 0.44),
+    inset 0 1px 0 0 rgba(241, 245, 252, 0.26);
+}
+
+#comms-topology.stage-worker_crosstalk #topo-w1::after,
+#comms-topology.stage-worker_crosstalk #topo-w2::after,
+#comms-topology.stage-worker_crosstalk #topo-w3::after,
+body.stage-worker_crosstalk #topo-w1::after,
+body.stage-worker_crosstalk #topo-w2::after,
+body.stage-worker_crosstalk #topo-w3::after {
+  border-color: rgba(var(--node-accent-rgb), 0.46);
+  opacity: 1;
+  animation: vfx-node-breathe 1.8s var(--vfx-ease-cinematic) infinite;
+}
+
+#comms-topology.stage-boss_merge #topo-boss,
+body.stage-boss_merge #topo-boss {
+  border-color: rgba(var(--vfx-amber-rgb), 0.78);
+  transform: translateY(-1px) scale(1.045);
+  box-shadow:
+    0 14px 32px -10px rgba(3, 5, 9, 0.95),
+    0 0 30px -6px rgba(var(--vfx-amber-rgb), 0.48),
+    0 0 18px -6px rgba(var(--vfx-emerald-rgb), 0.36),
+    inset 0 1px 0 0 rgba(241, 245, 252, 0.32);
+}
+
+#comms-topology.stage-boss_merge #topo-boss::after,
+body.stage-boss_merge #topo-boss::after {
+  border-color: rgba(var(--vfx-emerald-rgb), 0.52);
+  opacity: 1;
+  animation: vfx-node-breathe 2.0s var(--vfx-ease-cinematic) infinite;
+}
+
+@keyframes vfx-node-breathe {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.78;
+  }
+  50% {
+    transform: scale(1.055);
+    opacity: 0.28;
+  }
+}
+
+/* ==========================================================================
+   VFX-OFF & REDUCED-MOTION ACCESSIBILITY COMPLIANCE
+   ========================================================================== */
+.vfx-off #vfx-canvas,
+[data-vfx="off"] #vfx-canvas,
+.vfx-off .vfx-layer,
+[data-vfx="off"] .vfx-layer {
+  display: none !important;
+}
+
+.vfx-off #topo-boss::after,
+.vfx-off #topo-w1::after,
+.vfx-off #topo-w2::after,
+.vfx-off #topo-w3::after,
+[data-vfx="off"] #topo-boss::after,
+[data-vfx="off"] #topo-w1::after,
+[data-vfx="off"] #topo-w2::after,
+[data-vfx="off"] #topo-w3::after {
+  animation: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #vfx-canvas,
+  .vfx-topology-canvas,
+  .vfx-boss-core-canvas,
+  .vfx-waveform-canvas,
+  .vfx-shockwave-canvas {
+    opacity: 0.55;
+  }
+
+  #topo-boss::after,
+  #topo-w1::after,
+  #topo-w2::after,
+  #topo-w3::after {
+    animation: none !important;
+  }
+
+  #boss-plan-card,
+  #worker-card-worker_1,
+  #worker-card-worker_2,
+  #worker-card-worker_3,
+  #boss-merge-card,
+  #topo-boss,
+  #topo-w1,
+  #topo-w2,
+  #topo-w3 {
+    transition-duration: 0.01ms !important;
+  }
+}
