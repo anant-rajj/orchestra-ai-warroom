@@ -121,33 +121,17 @@ function renderMarkdown(text) {
   return html;
 }
 
-/* Pro 3D & CFX Engine hook (managed by /static/pro_vfx.js) */
+/* 3D Planetary Drafting Orrery VFX Engine (managed by /static/orrery_vfx.js) */
 function syncProVfxEngine() {
-  if (typeof initProVfxEngine !== "function") return;
-  const ctrl = initProVfxEngine();
-  ctrl?.setVfxEnabled(state.vfxEnabled);
+  if (typeof initOrreryVfxEngine !== "function") return;
+  if (!window.__orchestraOrrery) {
+    const ctrl = initOrreryVfxEngine();
+    ctrl?.setVfxEnabled(state.vfxEnabled);
+  }
 }
 
-/* Pointer-tracked 3D card tilt + glare */
-function attach3DTilt(root = document) {
-  root.querySelectorAll(".card-3d").forEach((card) => {
-    if (card.dataset.tiltBound) return;
-    card.dataset.tiltBound = "1";
-    card.addEventListener("pointermove", (e) => {
-      if (!state.vfxEnabled) return;
-      const rect = card.getBoundingClientRect();
-      const px = (e.clientX - rect.left) / Math.max(rect.width, 1);
-      const py = (e.clientY - rect.top) / Math.max(rect.height, 1);
-      const rx = (0.5 - py) * 3.8;
-      const ry = (px - 0.5) * 3.8;
-      card.style.transform = `rotateX(${rx.toFixed(2)}deg) rotateY(${ry.toFixed(2)}deg) translateZ(6px)`;
-      card.style.setProperty("--mx", `${(px * 100).toFixed(1)}%`);
-      card.style.setProperty("--my", `${(py * 100).toFixed(1)}%`);
-    });
-    card.addEventListener("pointerleave", () => {
-      card.style.transform = "";
-    });
-  });
+function attach3DTilt() {
+  // Handled by 3D camera orbit & CAD glass pods
 }
 
 function getProviderById(id) {
@@ -383,17 +367,15 @@ function ensureWorkerShells() {
     .slice(1)
     .map(
       (slot, idx) => `
-      <div class="worker-card card-3d glass-card" id="worker-card-${slot.role_id}">
-        <div class="card-glare"></div>
-        <div class="card-head">
-          <span class="role-chip ${chipClasses[idx]}">🧠 ${escapeHtml(slot.label)} · ${escapeHtml(slot.title)}</span>
+      <div class="worker-card glass-pod" id="worker-card-${slot.role_id}">
+        <div class="pod-head">
+          <span class="role-chip ${chipClasses[idx]}">● ${escapeHtml(slot.label)} · ${escapeHtml(slot.title)}</span>
           <span class="meta-tag" id="worker-meta-${slot.role_id}">${escapeHtml(slot.model.split("/").pop())} · Idle</span>
         </div>
         <div class="worker-chatlog" id="worker-log-${slot.role_id}"></div>
       </div>`
     )
     .join("");
-  attach3DTilt(workersGrid);
   syncProVfxEngine();
 }
 
@@ -406,15 +388,7 @@ function renderOrchestra() {
     pill.classList.toggle("done", run.doneStages.has(st));
   });
 
-  const topo = document.getElementById("comms-topology");
-  if (topo) {
-    topo.className = "comms-topology glass-card" + (run.activeStage ? ` stage-${run.activeStage}` : "");
-    document.getElementById("topo-boss")?.classList.toggle("active", run.activeStage === "boss_plan" || run.activeStage === "boss_merge");
-    const workersActive = run.activeStage === "worker_draft" || run.activeStage === "worker_crosstalk";
-    ["topo-w1", "topo-w2", "topo-w3"].forEach((id) => {
-      document.getElementById(id)?.classList.toggle("active", workersActive);
-    });
-  }
+  window.__orchestraOrrery?.setStage(run.activeStage || "idle");
 
   const bossSlot = state.roster[0];
   document.getElementById("boss-plan-meta").textContent = `${bossSlot.model} · ${run.bossPlan.status}`;
@@ -423,7 +397,7 @@ function renderOrchestra() {
     run.bossPlan.text,
     run.bossPlan.reasoning,
     run.bossPlan.error,
-    "Boss thinks on the prompt first, creates its own angle, and delegates to the 3 Thinkers.",
+    "Drag anywhere to orbit 3D planets · Scroll to zoom · Send a prompt below to launch the 3D Thinkers.",
     run.activeStage === "boss_plan"
   );
 
@@ -433,7 +407,7 @@ function renderOrchestra() {
     run.bossMerge.text,
     run.bossMerge.reasoning,
     run.bossMerge.error,
-    "After the 3 Thinkers discuss and finalise their proposals, the Boss audits all three, removes the weakest output, adds Boss improvements, and merges the best parts here.",
+    "After bounded cross-talk stops cleanly, the Boss audits all 3 Thinkers, removes the weakest output, adds Boss improvements, and merges the final answer here.",
     run.activeStage === "boss_merge"
   );
 
@@ -451,7 +425,6 @@ function renderOrchestra() {
     log.innerHTML = renderWorkerChatlogHtml(slot, wState, workersLive);
     log.scrollTop = log.scrollHeight;
   });
-  attach3DTilt(document);
 }
 
 async function consumeSseStream(response, onEvent) {
@@ -545,11 +518,13 @@ async function runOrchestra(event) {
       else if (ev.stage === "boss_merge") run.bossMerge.status = `Failover -> ${ev.model}`;
       else if (run.workers[ev.role_id]) run.workers[ev.role_id].status = `Failover -> ${ev.model.split("/").pop()}`;
     } else if (ev.type === "agent_reasoning") {
+      window.__orchestraOrrery?.spikeNode(ev.role_id || "boss");
       if (ev.stage === "boss_plan") run.bossPlan.reasoning += ev.text;
       else if (ev.stage === "boss_merge") run.bossMerge.reasoning += ev.text;
       else if (ev.stage === "worker_draft") run.workers[ev.role_id].draftReasoning += ev.text;
       else if (ev.stage === "worker_crosstalk") run.workers[ev.role_id].talkReasoning += ev.text;
     } else if (ev.type === "agent_delta") {
+      window.__orchestraOrrery?.spikeNode(ev.role_id || "boss");
       if (ev.stage === "boss_plan") {
         run.bossPlan.status = "Briefing…";
         run.bossPlan.text += ev.text;
@@ -575,7 +550,7 @@ async function runOrchestra(event) {
     } else if (ev.type === "orchestra_done") {
       if (run.activeStage) run.doneStages.add(run.activeStage);
       run.activeStage = null;
-      window.__orchestraProVfx?.triggerMergeShockwave();
+      window.__orchestraOrrery?.triggerMergeShockwave();
     }
     renderOrchestra();
   };
@@ -817,8 +792,52 @@ function wireEvents() {
   document.getElementById("btn-toggle-vfx").addEventListener("click", (e) => {
     state.vfxEnabled = !state.vfxEnabled;
     document.body.classList.toggle("vfx-off", !state.vfxEnabled);
-    window.__orchestraProVfx?.setVfxEnabled(state.vfxEnabled);
-    e.currentTarget.textContent = state.vfxEnabled ? "✨ 3D VFX: On" : "✨ 3D VFX: Off";
+    window.__orchestraOrrery?.setVfxEnabled(state.vfxEnabled);
+    e.currentTarget.textContent = state.vfxEnabled ? "✨ 3D: On" : "✨ 3D: Off";
+  });
+
+  const drawerIds = ["drawer-roster", "drawer-params", "code-drawer"];
+  function toggleDrawer(targetId) {
+    drawerIds.forEach((id) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (id === targetId) el.classList.toggle("hidden");
+      else el.classList.add("hidden");
+    });
+  }
+  document.getElementById("btn-drawer-roster").addEventListener("click", () => toggleDrawer("drawer-roster"));
+  document.getElementById("btn-drawer-params").addEventListener("click", () => toggleDrawer("drawer-params"));
+  document.getElementById("btn-toggle-code").addEventListener("click", () => {
+    toggleDrawer("code-drawer");
+    updateCodePreview();
+  });
+  document.querySelectorAll(".drawer-close").forEach((btn) => {
+    btn.addEventListener("click", () => document.getElementById(btn.dataset.close)?.classList.add("hidden"));
+  });
+
+  document.getElementById("btn-cam-orrery").addEventListener("click", (e) => {
+    window.__orchestraOrrery?.setCameraPreset("orrery");
+    e.currentTarget.classList.add("active");
+    document.getElementById("btn-cam-blueprint").classList.remove("active");
+  });
+  document.getElementById("btn-cam-blueprint").addEventListener("click", (e) => {
+    window.__orchestraOrrery?.setCameraPreset("blueprint");
+    e.currentTarget.classList.add("active");
+    document.getElementById("btn-cam-orrery").classList.remove("active");
+  });
+  document.getElementById("btn-cam-pods").addEventListener("click", (e) => {
+    const layer = document.getElementById("workers-grid");
+    const min = layer.classList.toggle("pods-minimized");
+    e.currentTarget.textContent = min ? "Pods: Min" : "Pods: Open";
+  });
+
+  document.getElementById("btn-toggle-brief").addEventListener("click", (e) => {
+    const collapsed = document.getElementById("boss-plan-card").classList.toggle("is-collapsed");
+    e.currentTarget.textContent = collapsed ? "▸" : "▾";
+  });
+  document.getElementById("btn-toggle-verdict").addEventListener("click", (e) => {
+    const collapsed = document.getElementById("boss-merge-card").classList.toggle("is-collapsed");
+    e.currentTarget.textContent = collapsed ? "▸" : "▾";
   });
 
   document.getElementById("preset-select").addEventListener("change", (e) => {
@@ -844,8 +863,6 @@ function wireEvents() {
     document.getElementById("tab-chat").classList.remove("active");
     document.getElementById("orchestra-view").classList.add("active");
     document.getElementById("chat-view").classList.remove("active");
-    document.getElementById("orchestra-roster-controls").classList.remove("hidden");
-    document.getElementById("single-model-controls").classList.add("hidden");
   });
 
   document.getElementById("tab-chat").addEventListener("click", () => {
@@ -854,15 +871,6 @@ function wireEvents() {
     document.getElementById("tab-orchestra").classList.remove("active");
     document.getElementById("chat-view").classList.add("active");
     document.getElementById("orchestra-view").classList.remove("active");
-    document.getElementById("single-model-controls").classList.remove("hidden");
-    document.getElementById("orchestra-roster-controls").classList.add("hidden");
-  });
-
-  document.getElementById("btn-toggle-code").addEventListener("click", () => {
-    const drawer = document.getElementById("code-drawer");
-    const hidden = drawer.classList.toggle("hidden");
-    document.getElementById("btn-toggle-code").textContent = hidden ? "Show Code" : "Hide Code";
-    updateCodePreview();
   });
 
   document.querySelectorAll(".code-lang").forEach((btn) => {
