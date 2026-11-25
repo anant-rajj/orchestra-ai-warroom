@@ -29,7 +29,7 @@ def test_health_and_index() -> None:
     assert client.get("/api/health").json() == {"status": "ok"}
     index_res = client.get("/")
     assert index_res.status_code == 200
-    assert "Orchestra AI · 3D War-Room" in index_res.text
+    assert "Orchestra AI · 3D Planetary Drafting Orrery" in index_res.text
 
 
 def test_providers_metadata_hides_secrets() -> None:

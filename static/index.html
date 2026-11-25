@@ -3,254 +3,219 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Orchestra AI · 3D War-Room (1 Boss + 3 Thinkers)</title>
+  <title>Orchestra AI · 3D Planetary Drafting Orrery</title>
   <link rel="stylesheet" href="./styles.css" />
-  <link rel="stylesheet" href="./pro_vfx.css" />
 </head>
 <body>
-  <!-- 3D Depth Neural Particle Canvas & Soft Ambient Aurora -->
-  <canvas id="vfx-canvas" aria-hidden="true"></canvas>
-  <div class="ambient-aurora" aria-hidden="true"></div>
+  <!-- Full-Bleed 100% 3D Planetary Drafting Stage -->
+  <canvas id="orrery-canvas" aria-hidden="true"></canvas>
 
-  <div class="app-shell">
-    <header class="topbar glass-panel">
-      <div class="brand">
-        <span class="brand-badge">🎼</span>
+  <div class="hud-root" id="orrery-stage">
+    <!-- Top Floating HUD Telemetry Bar (NO Left Sidebar) -->
+    <header class="hud-topbar">
+      <div class="hud-brand glass-pill">
+        <span class="brand-orb"></span>
         <div>
-          <h1>Orchestra AI · 3D War-Room</h1>
-          <p class="subtitle">1 Orchestra Boss + 3 Collaborating Thinkers · Live Cross-Talk, Filter &amp; Merge</p>
+          <h1>ORCHESTRA AI</h1>
+          <span class="hud-sub">3D PLANETARY DRAFTING ORRERY · 1 BOSS + 3 THINKERS</span>
         </div>
       </div>
 
-      <div class="mode-tabs" role="tablist">
-        <button id="tab-orchestra" class="mode-tab active" data-mode="orchestra">3D Orchestra (Boss + 3)</button>
-        <button id="tab-chat" class="mode-tab" data-mode="chat">Single Chat</button>
+      <div class="stage-ring glass-pill" id="comms-topology">
+        <div class="stage-pill" data-stage="boss_plan"><span class="orb"></span>01 BRIEF</div>
+        <div class="stage-pill" data-stage="worker_draft"><span class="orb"></span>02 ORBIT</div>
+        <div class="stage-pill" data-stage="worker_crosstalk"><span class="orb"></span>03 DEBATE</div>
+        <div class="stage-pill" data-stage="boss_merge"><span class="orb"></span>04 VERDICT</div>
       </div>
 
-      <div class="topbar-actions">
-        <button id="btn-toggle-vfx" class="btn btn-ghost" title="Toggle 3D tilt & particles">✨ 3D VFX: On</button>
-        <button id="btn-toggle-code" class="btn btn-ghost">Show Code</button>
-        <button id="btn-open-keys" class="btn btn-primary">
-          API Keys <span id="keys-count-badge" class="badge">0</span>
+      <div class="hud-actions">
+        <div class="seg-group glass-pill">
+          <button id="btn-cam-orrery" class="seg-btn active" title="3D Orbital Camera">3D Orrery</button>
+          <button id="btn-cam-blueprint" class="seg-btn" title="Top-Down CAD Blueprint">CAD Top</button>
+          <button id="btn-cam-pods" class="seg-btn" title="Toggle Thinker Pods">Pods: Open</button>
+        </div>
+
+        <div class="seg-group glass-pill">
+          <button id="tab-orchestra" class="seg-btn active" data-mode="orchestra">Orrery</button>
+          <button id="tab-chat" class="seg-btn" data-mode="chat">Single</button>
+        </div>
+
+        <button id="btn-drawer-roster" class="hud-pill-btn glass-pill">🧠 Roster</button>
+        <button id="btn-drawer-params" class="hud-pill-btn glass-pill">⚙ Params</button>
+        <button id="btn-toggle-vfx" class="hud-pill-btn glass-pill">✨ 3D: On</button>
+        <button id="btn-toggle-code" class="hud-pill-btn glass-pill">&lt;/&gt; Code</button>
+        <button id="btn-open-keys" class="hud-pill-btn cta-pill">
+          🔑 Keys <span id="keys-count-badge" class="badge">0</span>
         </button>
       </div>
     </header>
 
-    <div class="workspace">
-      <aside class="sidebar glass-panel">
-        <section class="panel-section hidden" id="single-model-controls">
-          <div class="section-header">
-            <h2>Single Model</h2>
-            <button id="btn-refresh-models" class="btn-link" title="Fetch live models from provider">↻ Refresh</button>
-          </div>
-          <label class="field">
-            <span>Provider</span>
-            <select id="provider-select"></select>
-          </label>
-          <label class="field">
-            <span>Model</span>
-            <select id="model-select"></select>
-          </label>
-          <label class="field">
-            <span>Custom Model ID (optional)</span>
-            <input id="custom-model-input" type="text" placeholder="e.g. nvidia/nemotron-3.5-super-vl-120b-a12b" />
-          </label>
-          <div id="provider-status-pill" class="status-pill"></div>
-        </section>
-
-        <section class="panel-section" id="orchestra-roster-controls">
-          <div class="section-header">
-            <h2>Company Roster (2–3 Models)</h2>
-          </div>
-          <div id="roster-config-list" class="roster-config-list"></div>
-        </section>
-
-        <section class="panel-section">
-          <div class="section-header">
-            <h2>Company Goal</h2>
-            <select id="preset-select" class="mini-select" aria-label="System prompt preset">
-              <option value="">Presets…</option>
-              <option value="assistant">Helpful Team</option>
-              <option value="architect">Engineering Org</option>
-              <option value="security">Security Audit Team</option>
-              <option value="concise">Ultra-Concise</option>
-            </select>
-          </div>
-          <textarea id="system-prompt" rows="3" placeholder="Optional global instruction for Boss & Thinkers"></textarea>
-        </section>
-
-        <section class="panel-section">
-          <h2>Parameters</h2>
-          <label class="slider-field">
-            <div class="slider-label">
-              <span>Temperature</span>
-              <strong id="temp-value">0.7</strong>
-            </div>
-            <input id="temp-slider" type="range" min="0" max="1.5" step="0.1" value="0.7" />
-          </label>
-
-          <label class="slider-field">
-            <div class="slider-label">
-              <span>Max Tokens / Turn</span>
-              <strong id="tokens-value">1536</strong>
-            </div>
-            <input id="tokens-slider" type="range" min="256" max="4096" step="256" value="1536" />
-          </label>
-
-          <label class="slider-field">
-            <div class="slider-label">
-              <span>Top P</span>
-              <strong id="topp-value">1.0</strong>
-            </div>
-            <input id="topp-slider" type="range" min="0.1" max="1" step="0.05" value="1.0" />
-          </label>
-
-          <label class="field">
-            <span>Thinker Cross-Talk Rounds (auto-stops on consensus)</span>
-            <select id="discussion-rounds">
-              <option value="1">1 Round (Fast)</option>
-              <option value="2" selected>2 Rounds (Talk + Converge)</option>
-              <option value="3">3 Rounds (Deep Debate)</option>
-            </select>
-          </label>
-
-          <label class="field hidden" id="reasoning-effort-wrap">
-            <span>Reasoning Effort</span>
-            <select id="reasoning-effort">
-              <option value="low">low</option>
-              <option value="medium" selected>medium</option>
-              <option value="high">high</option>
-            </select>
-          </label>
-        </section>
-
-        <section class="panel-section actions-stack">
-          <button id="btn-export-chat" class="btn btn-ghost">Export Markdown</button>
-          <button id="btn-clear-chat" class="btn btn-danger-ghost">Clear Workspace</button>
-        </section>
-      </aside>
-
-      <main class="main-stage">
-        <!-- 3D Orchestra (1 Boss + 3 Thinkers) View -->
-        <section id="orchestra-view" class="view active">
-          <div class="stage-bar glass-panel">
-            <div class="stage-pill" data-stage="boss_plan"><span class="orb"></span>1. Boss Thinks &amp; Briefs</div>
-            <div class="stage-pill" data-stage="worker_draft"><span class="orb"></span>2. 3 Thinkers Work</div>
-            <div class="stage-pill" data-stage="worker_crosstalk"><span class="orb"></span>3. Talk &amp; Finalise</div>
-            <div class="stage-pill" data-stage="boss_merge"><span class="orb"></span>4. Boss Audits &amp; Merges</div>
-          </div>
-
-          <div class="orchestra-workspace scene-3d">
-            <!-- 3D Holographic Topology & Procedural Plasma Energy Network -->
-            <div class="comms-topology glass-card" id="comms-topology">
-              <div class="topo-nodes">
-                <div class="topo-node boss-node" id="topo-boss">👑 Boss</div>
-                <div class="topo-workers-row">
-                  <div class="topo-node w1-node" id="topo-w1">🧠 Thinker 1</div>
-                  <div class="topo-node w2-node" id="topo-w2">🧠 Thinker 2</div>
-                  <div class="topo-node w3-node" id="topo-w3">🧠 Thinker 3</div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Boss Plan Card -->
-            <div id="boss-plan-card" class="boss-card card-3d glass-card">
-              <div class="card-glare"></div>
-              <div class="card-head">
-                <span class="role-chip boss">👑 Orchestra Boss · Initial Thinking &amp; Brief</span>
-                <span id="boss-plan-meta" class="meta-tag">Idle</span>
-              </div>
-              <div id="boss-plan-body" class="card-body">
-                <span class="muted">Boss thinks on the prompt first, creates its own angle, and delegates to the 3 Thinkers.</span>
-              </div>
-            </div>
-
-            <!-- 3 Thinkers Working & Talking Side-by-Side -->
-            <div id="workers-grid" class="workers-grid"></div>
-
-            <!-- Boss Final Review, Filter & Merged Output -->
-            <div id="boss-merge-card" class="boss-card final-verdict card-3d glass-card">
-              <div class="card-glare"></div>
-              <div class="card-head">
-                <span class="role-chip verdict">✅ Boss Review · Worse One Removed &amp; Final Merged Answer</span>
-                <span id="boss-merge-meta" class="meta-tag">Idle</span>
-              </div>
-              <div id="boss-merge-body" class="card-body">
-                <span class="muted">After the 3 Thinkers discuss and finalise their proposals, the Boss audits all three, removes the weakest output, adds Boss improvements, and merges the best parts here.</span>
-              </div>
-            </div>
-          </div>
-
-          <form id="orchestra-form" class="composer glass-panel">
-            <textarea
-              id="orchestra-input"
-              rows="2"
-              placeholder="Give the Boss & 3 Thinkers a task... (e.g. 'Design a secure auth system for a FastAPI app')"
-            ></textarea>
-            <div class="composer-actions">
-              <button id="btn-orchestra-stop" type="button" class="btn btn-danger-ghost hidden">Stop</button>
-              <button id="btn-orchestra-send" type="submit" class="btn btn-primary">Run Orchestra ↵</button>
-            </div>
-          </form>
-        </section>
-
-        <!-- Single Chat Playground -->
-        <section id="chat-view" class="view">
-          <div id="chat-messages" class="chat-messages"></div>
-          <form id="chat-form" class="composer glass-panel">
-            <textarea
-              id="chat-input"
-              rows="2"
-              placeholder="Ask anything... (Enter to send, Shift+Enter for newline)"
-            ></textarea>
-            <div class="composer-actions">
-              <button id="btn-stop" type="button" class="btn btn-danger-ghost hidden">Stop</button>
-              <button id="btn-send" type="submit" class="btn btn-primary">Send ↵</button>
-            </div>
-          </form>
-        </section>
-      </main>
-
-      <!-- Live Code Panel -->
-      <aside id="code-drawer" class="code-drawer glass-panel hidden">
-        <div class="section-header">
-          <div class="code-lang-tabs">
-            <button class="code-lang active" data-lang="python">Python</button>
-            <button class="code-lang" data-lang="curl">cURL</button>
-          </div>
-          <button id="btn-copy-code" class="btn btn-ghost">Copy</button>
+    <!-- Main Spatial Orchestra Stage -->
+    <main id="orchestra-view" class="spatial-stage active">
+      <!-- Top-Center Boss Brief HUD Chip (Expandable) -->
+      <section id="boss-plan-card" class="boss-brief-hud glass-pod">
+        <div class="pod-head">
+          <span class="role-chip boss">👑 BOSS BRIEFING CORE</span>
+          <span id="boss-plan-meta" class="meta-tag">Idle</span>
+          <button id="btn-toggle-brief" class="pod-min-btn" title="Collapse/Expand Brief">▾</button>
         </div>
-        <pre id="code-preview" class="code-preview"></pre>
-      </aside>
-    </div>
+        <div id="boss-plan-body" class="pod-body compact-scroll">
+          <span class="muted">Drag anywhere to orbit 3D planets · Scroll to zoom · Send a prompt below to launch the 3 Thinkers.</span>
+        </div>
+      </section>
+
+      <!-- 3 Floating Translucent Thinker Comms Pods Tethered to Moving Planets -->
+      <section id="workers-grid" class="orbital-pods-layer" aria-label="3 Thinker Comms Pods"></section>
+
+      <!-- Finalised Boss Verdict Monolith (Above Bottom Command Dock) -->
+      <section id="boss-merge-card" class="verdict-monolith glass-pod">
+        <div class="pod-head">
+          <span class="role-chip verdict">⚡ FINALISED BOSS VERDICT · WORSE WORKER FILTERED &amp; MERGED</span>
+          <span id="boss-merge-meta" class="meta-tag">Idle</span>
+          <button id="btn-toggle-verdict" class="pod-min-btn" title="Collapse/Expand Verdict">▾</button>
+        </div>
+        <div id="boss-merge-body" class="pod-body verdict-scroll">
+          <span class="muted">After bounded cross-talk stops cleanly, the Boss audits all 3 Thinkers, removes the weakest output, adds Boss improvements, and merges the final answer here.</span>
+        </div>
+      </section>
+
+      <!-- Bottom Floating Curved Command Crescent Dock -->
+      <form id="orchestra-form" class="command-dock glass-pill">
+        <textarea
+          id="orchestra-input"
+          rows="1"
+          placeholder="Launch a task into the 3D Orrery... (Enter to run, Shift+Enter for newline)"
+        ></textarea>
+        <div class="dock-actions">
+          <button id="btn-export-chat" type="button" class="hud-pill-btn" title="Export Markdown">⬇ MD</button>
+          <button id="btn-clear-chat" type="button" class="hud-pill-btn" title="Clear Stage">✕ Clear</button>
+          <button id="btn-orchestra-stop" type="button" class="hud-pill-btn danger hidden">Stop</button>
+          <button id="btn-orchestra-send" type="submit" class="hud-pill-btn cta-pill">Run Orchestra ↵</button>
+        </div>
+      </form>
+    </main>
+
+    <!-- Single Chat View (Floating Centered Glass Arena) -->
+    <main id="chat-view" class="spatial-stage single-stage">
+      <div class="single-shell glass-pod">
+        <div class="single-toolbar">
+          <select id="provider-select"></select>
+          <select id="model-select"></select>
+          <input id="custom-model-input" type="text" placeholder="Custom model ID..." />
+          <button id="btn-refresh-models" class="hud-pill-btn">↻ Models</button>
+          <div id="provider-status-pill" class="status-pill"></div>
+        </div>
+        <div id="chat-messages" class="chat-messages"></div>
+        <form id="chat-form" class="command-dock inline-dock">
+          <textarea id="chat-input" rows="1" placeholder="Ask single model directly..."></textarea>
+          <div class="dock-actions">
+            <button id="btn-stop" type="button" class="hud-pill-btn danger hidden">Stop</button>
+            <button id="btn-send" type="submit" class="hud-pill-btn cta-pill">Send ↵</button>
+          </div>
+        </form>
+      </div>
+    </main>
+
+    <!-- Floating Popover Drawer: Company Roster (1 Boss + 3 Thinkers) -->
+    <aside id="drawer-roster" class="floating-drawer glass-pod hidden">
+      <div class="pod-head">
+        <span class="role-chip boss">COMPANY ROSTER (1 BOSS + 3 THINKERS)</span>
+        <button class="pod-min-btn drawer-close" data-close="drawer-roster">✕</button>
+      </div>
+      <div id="roster-config-list" class="roster-config-list"></div>
+    </aside>
+
+    <!-- Floating Popover Drawer: Parameters & Cross-Talk Stop Control -->
+    <aside id="drawer-params" class="floating-drawer glass-pod hidden">
+      <div class="pod-head">
+        <span class="role-chip w1">ORBITAL PARAMETERS &amp; CONVERGENCE</span>
+        <button class="pod-min-btn drawer-close" data-close="drawer-params">✕</button>
+      </div>
+      <div class="drawer-body">
+        <label class="field">
+          <span>Company Goal / System Prompt</span>
+          <select id="preset-select">
+            <option value="">Presets…</option>
+            <option value="assistant">Helpful Team</option>
+            <option value="architect">Engineering Org</option>
+            <option value="security">Security Audit Team</option>
+            <option value="concise">Ultra-Concise</option>
+          </select>
+          <textarea id="system-prompt" rows="3" placeholder="Optional global instruction"></textarea>
+        </label>
+        <label class="field">
+          <span>Max Thinker Cross-Talk Rounds (auto-stops on consensus)</span>
+          <select id="discussion-rounds">
+            <option value="1">1 Round (Fast)</option>
+            <option value="2" selected>2 Rounds (Talk + Converge)</option>
+            <option value="3">3 Rounds (Deep Debate)</option>
+          </select>
+        </label>
+        <label class="slider-field">
+          <div class="slider-label"><span>Temperature</span><strong id="temp-value">0.7</strong></div>
+          <input id="temp-slider" type="range" min="0" max="1.5" step="0.1" value="0.7" />
+        </label>
+        <label class="slider-field">
+          <div class="slider-label"><span>Max Tokens / Turn</span><strong id="tokens-value">1536</strong></div>
+          <input id="tokens-slider" type="range" min="256" max="4096" step="256" value="1536" />
+        </label>
+        <label class="slider-field">
+          <div class="slider-label"><span>Top P</span><strong id="topp-value">1.0</strong></div>
+          <input id="topp-slider" type="range" min="0.1" max="1" step="0.05" value="1.0" />
+        </label>
+        <label class="field hidden" id="reasoning-effort-wrap">
+          <span>Reasoning Effort</span>
+          <select id="reasoning-effort">
+            <option value="low">low</option>
+            <option value="medium" selected>medium</option>
+            <option value="high">high</option>
+          </select>
+        </label>
+      </div>
+    </aside>
+
+    <!-- Floating Code Snippet Drawer -->
+    <aside id="code-drawer" class="floating-drawer glass-pod hidden">
+      <div class="pod-head">
+        <div class="code-lang-tabs">
+          <button class="code-lang active" data-lang="python">Python</button>
+          <button class="code-lang" data-lang="curl">cURL</button>
+        </div>
+        <div style="display:flex;gap:6px;">
+          <button id="btn-copy-code" class="hud-pill-btn">Copy</button>
+          <button class="pod-min-btn drawer-close" data-close="code-drawer">✕</button>
+        </div>
+      </div>
+      <pre id="code-preview" class="code-preview"></pre>
+    </aside>
   </div>
 
   <!-- API Keys Modal -->
   <div id="keys-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="keys-modal-title">
     <div class="modal-backdrop"></div>
-    <div class="modal-card glass-panel">
+    <div class="modal-card glass-pod">
       <div class="modal-header">
         <div>
-          <h2 id="keys-modal-title">Provider API Keys</h2>
-          <p class="subtitle">Stored in browser localStorage and optionally saved to your local <code>.env</code> file.</p>
+          <h2 id="keys-modal-title">API Key Pools (Auto-Rotation &amp; Failover)</h2>
+          <p class="subtitle">Paste one or comma-separated keys per provider. Saved in browser localStorage (and local <code>.env</code> when running locally).</p>
         </div>
-        <button id="btn-close-keys" class="btn btn-ghost">✕</button>
+        <button id="btn-close-keys" class="pod-min-btn">✕</button>
       </div>
       <div id="keys-list" class="keys-list"></div>
       <div class="modal-footer">
         <label class="checkbox-row">
           <input id="persist-env-checkbox" type="checkbox" checked />
-          <span>Also save keys to local <code>.env</code> on this machine</span>
+          <span>Also save keys to local <code>.env</code></span>
         </label>
-        <div class="modal-footer-btns">
-          <button id="btn-cancel-keys" class="btn btn-ghost">Cancel</button>
-          <button id="btn-save-keys" class="btn btn-primary">Save Keys</button>
+        <div style="display:flex;gap:8px;">
+          <button id="btn-cancel-keys" class="hud-pill-btn">Cancel</button>
+          <button id="btn-save-keys" class="hud-pill-btn cta-pill">Save Keys</button>
         </div>
       </div>
     </div>
   </div>
 
-  <script src="./pro_vfx.js"></script>
+  <script src="./orrery_vfx.js"></script>
   <script src="./direct_client.js"></script>
   <script src="./app.js"></script>
 </body>
