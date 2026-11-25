@@ -14,6 +14,7 @@ const state = {
   localKeys: loadLocalKeys(),
   messages: loadHistory(),
   mode: "orchestra",
+  staticMode: false,
   codeLang: "python",
   vfxEnabled: true,
   activeAbort: null,
@@ -169,9 +170,20 @@ function activeProviderId() {
 }
 
 async function fetchProviders() {
-  const res = await fetch("/api/providers");
-  const data = await res.json();
-  state.providers = data.providers || [];
+  try {
+    const res = await fetch("./api/providers");
+    if (!res.ok) throw new Error("Static host");
+    const data = await res.json();
+    state.staticMode = false;
+    state.providers = data.providers || [];
+  } catch {
+    state.staticMode = true;
+    state.providers = (typeof STATIC_PROVIDERS_CATALOG !== "undefined" ? STATIC_PROVIDERS_CATALOG : []).map((p) => ({
+      ...p,
+      configured: !p.requires_key || Boolean(state.localKeys[p.id]),
+      key_count: p.requires_key ? (typeof splitKeyPool === "function" ? splitKeyPool(state.localKeys[p.id]).length : 0) : 1,
+    }));
+  }
   alignRosterWithConfiguredProviders();
   populateProviderSelect();
   renderRosterControls();
@@ -509,73 +521,84 @@ async function runOrchestra(event) {
     api_keys: state.localKeys,
   };
 
-  try {
-    const res = await fetch("/api/orchestra/stream", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-      signal: controller.signal,
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-    await consumeSseStream(res, (ev) => {
-      if (ev.type === "stage_start") {
-        if (run.activeStage) run.doneStages.add(run.activeStage);
-        run.activeStage = ev.stage;
-        if (ev.stage === "boss_plan") run.bossPlan.status = "Thinking…";
-        if (ev.stage === "boss_merge") run.bossMerge.status = "Auditing & Merging…";
-      } else if (ev.type === "crosstalk_round") {
-        state.roster.slice(1).forEach((s) => {
-          const w = run.workers[s.role_id];
-          if (w) {
-            w.status = `Round ${ev.round}/${ev.max_rounds}`;
-            if (ev.round > 1 && w.talk) w.talk += `\n\n---\n**Round ${ev.round}/${ev.max_rounds}:**\n`;
-          }
-        });
-      } else if (ev.type === "crosstalk_stopped") {
-        state.roster.slice(1).forEach((s) => {
-          const w = run.workers[s.role_id];
-          if (w) w.status = `Stopped (${ev.reason})`;
-        });
-      } else if (ev.type === "agent_failover") {
-        if (ev.stage === "boss_plan") run.bossPlan.status = `Failover -> ${ev.model}`;
-        else if (ev.stage === "boss_merge") run.bossMerge.status = `Failover -> ${ev.model}`;
-        else if (run.workers[ev.role_id]) run.workers[ev.role_id].status = `Failover -> ${ev.model.split("/").pop()}`;
-      } else if (ev.type === "agent_reasoning") {
-        if (ev.stage === "boss_plan") run.bossPlan.reasoning += ev.text;
-        else if (ev.stage === "boss_merge") run.bossMerge.reasoning += ev.text;
-        else if (ev.stage === "worker_draft") run.workers[ev.role_id].draftReasoning += ev.text;
-        else if (ev.stage === "worker_crosstalk") run.workers[ev.role_id].talkReasoning += ev.text;
-      } else if (ev.type === "agent_delta") {
-        if (ev.stage === "boss_plan") {
-          run.bossPlan.status = "Briefing…";
-          run.bossPlan.text += ev.text;
-        } else if (ev.stage === "boss_merge") {
-          run.bossMerge.status = "Merging…";
-          run.bossMerge.text += ev.text;
-        } else if (ev.stage === "worker_draft") {
-          run.workers[ev.role_id].status = "Working…";
-          run.workers[ev.role_id].draft += ev.text;
-        } else if (ev.stage === "worker_crosstalk") {
-          run.workers[ev.role_id].status = "Talking…";
-          run.workers[ev.role_id].talk += ev.text;
+  const handleOrchestraEvent = (ev) => {
+    if (ev.type === "stage_start") {
+      if (run.activeStage) run.doneStages.add(run.activeStage);
+      run.activeStage = ev.stage;
+      if (ev.stage === "boss_plan") run.bossPlan.status = "Thinking…";
+      if (ev.stage === "boss_merge") run.bossMerge.status = "Auditing & Merging…";
+    } else if (ev.type === "crosstalk_round") {
+      state.roster.slice(1).forEach((s) => {
+        const w = run.workers[s.role_id];
+        if (w) {
+          w.status = `Round ${ev.round}/${ev.max_rounds}`;
+          if (ev.round > 1 && w.talk) w.talk += `\n\n---\n**Round ${ev.round}/${ev.max_rounds}:**\n`;
         }
-      } else if (ev.type === "agent_error") {
-        if (ev.stage === "boss_plan") run.bossPlan.error = ev.message;
-        else if (ev.stage === "boss_merge") run.bossMerge.error = ev.message;
-        else if (run.workers[ev.role_id]) run.workers[ev.role_id].error = ev.message;
-      } else if (ev.type === "agent_done") {
-        if (ev.stage === "boss_plan") run.bossPlan.status = "Done";
-        else if (ev.stage === "boss_merge") run.bossMerge.status = "Done";
-        else if (ev.stage === "worker_draft" && run.workers[ev.role_id]) run.workers[ev.role_id].status = "Draft Ready";
-        else if (ev.stage === "worker_crosstalk" && run.workers[ev.role_id]) run.workers[ev.role_id].status = "Finalised";
-      } else if (ev.type === "orchestra_done") {
-        if (run.activeStage) run.doneStages.add(run.activeStage);
-        run.activeStage = null;
-        window.__orchestraProVfx?.triggerMergeShockwave();
+      });
+    } else if (ev.type === "crosstalk_stopped") {
+      state.roster.slice(1).forEach((s) => {
+        const w = run.workers[s.role_id];
+        if (w) w.status = `Stopped (${ev.reason})`;
+      });
+    } else if (ev.type === "agent_failover") {
+      if (ev.stage === "boss_plan") run.bossPlan.status = `Failover -> ${ev.model}`;
+      else if (ev.stage === "boss_merge") run.bossMerge.status = `Failover -> ${ev.model}`;
+      else if (run.workers[ev.role_id]) run.workers[ev.role_id].status = `Failover -> ${ev.model.split("/").pop()}`;
+    } else if (ev.type === "agent_reasoning") {
+      if (ev.stage === "boss_plan") run.bossPlan.reasoning += ev.text;
+      else if (ev.stage === "boss_merge") run.bossMerge.reasoning += ev.text;
+      else if (ev.stage === "worker_draft") run.workers[ev.role_id].draftReasoning += ev.text;
+      else if (ev.stage === "worker_crosstalk") run.workers[ev.role_id].talkReasoning += ev.text;
+    } else if (ev.type === "agent_delta") {
+      if (ev.stage === "boss_plan") {
+        run.bossPlan.status = "Briefing…";
+        run.bossPlan.text += ev.text;
+      } else if (ev.stage === "boss_merge") {
+        run.bossMerge.status = "Merging…";
+        run.bossMerge.text += ev.text;
+      } else if (ev.stage === "worker_draft") {
+        run.workers[ev.role_id].status = "Working…";
+        run.workers[ev.role_id].draft += ev.text;
+      } else if (ev.stage === "worker_crosstalk") {
+        run.workers[ev.role_id].status = "Talking…";
+        run.workers[ev.role_id].talk += ev.text;
       }
-      renderOrchestra();
-    });
+    } else if (ev.type === "agent_error") {
+      if (ev.stage === "boss_plan") run.bossPlan.error = ev.message;
+      else if (ev.stage === "boss_merge") run.bossMerge.error = ev.message;
+      else if (run.workers[ev.role_id]) run.workers[ev.role_id].error = ev.message;
+    } else if (ev.type === "agent_done") {
+      if (ev.stage === "boss_plan") run.bossPlan.status = "Done";
+      else if (ev.stage === "boss_merge") run.bossMerge.status = "Done";
+      else if (ev.stage === "worker_draft" && run.workers[ev.role_id]) run.workers[ev.role_id].status = "Draft Ready";
+      else if (ev.stage === "worker_crosstalk" && run.workers[ev.role_id]) run.workers[ev.role_id].status = "Finalised";
+    } else if (ev.type === "orchestra_done") {
+      if (run.activeStage) run.doneStages.add(run.activeStage);
+      run.activeStage = null;
+      window.__orchestraProVfx?.triggerMergeShockwave();
+    }
+    renderOrchestra();
+  };
+
+  try {
+    if (state.staticMode && typeof runDirectOrchestra === "function") {
+      await runDirectOrchestra({
+        payload,
+        providers: state.providers,
+        localKeys: state.localKeys,
+        signal: controller.signal,
+        onEvent: handleOrchestraEvent,
+      });
+    } else {
+      const res = await fetch("./api/orchestra/stream", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      await consumeSseStream(res, handleOrchestraEvent);
+    }
   } catch (err) {
     if (err.name !== "AbortError") {
       const msg = err.message === "Failed to fetch"
@@ -656,31 +679,53 @@ async function sendSingleChat(event) {
   document.getElementById("btn-send").disabled = true;
 
   try {
-    const headers = { "Content-Type": "application/json" };
-    if (state.localKeys[providerId]) headers["X-Provider-Key"] = state.localKeys[providerId];
-    const res = await fetch("/api/chat/stream", {
-      method: "POST",
-      headers,
-      signal: controller.signal,
-      body: JSON.stringify({
-        provider: providerId,
-        model,
+    if (state.staticMode && typeof runDirectSlot === "function") {
+      await runDirectSlot({
+        slot: { provider: providerId, model, role_id: "single" },
+        stage: "single",
         messages: apiMessages,
+        providers: state.providers,
+        localKeys: state.localKeys,
         temperature: parseFloat(document.getElementById("temp-slider").value),
-        max_tokens: parseInt(document.getElementById("tokens-slider").value, 10),
-        top_p: parseFloat(document.getElementById("topp-slider").value),
-        reasoning_effort: document.getElementById("reasoning-effort").value,
-      }),
-    });
-    await consumeSseStream(res, (ev) => {
-      if (ev.type === "reasoning") assistantMsg.reasoning += ev.text;
-      else if (ev.type === "delta") assistantMsg.content += ev.text;
-      else if (ev.type === "error") {
-        assistantMsg.error = true;
-        assistantMsg.content = ev.message;
-      } else if (ev.type === "done") assistantMsg.meta = "Done";
-      renderMessages();
-    });
+        maxTokens: parseInt(document.getElementById("tokens-slider").value, 10),
+        signal: controller.signal,
+        onEvent: (ev) => {
+          if (ev.type === "agent_reasoning") assistantMsg.reasoning += ev.text;
+          else if (ev.type === "agent_delta") assistantMsg.content += ev.text;
+          else if (ev.type === "agent_error") {
+            assistantMsg.error = true;
+            assistantMsg.content = ev.message;
+          } else if (ev.type === "agent_done") assistantMsg.meta = "Done";
+          renderMessages();
+        },
+      });
+    } else {
+      const headers = { "Content-Type": "application/json" };
+      if (state.localKeys[providerId]) headers["X-Provider-Key"] = state.localKeys[providerId];
+      const res = await fetch("./api/chat/stream", {
+        method: "POST",
+        headers,
+        signal: controller.signal,
+        body: JSON.stringify({
+          provider: providerId,
+          model,
+          messages: apiMessages,
+          temperature: parseFloat(document.getElementById("temp-slider").value),
+          max_tokens: parseInt(document.getElementById("tokens-slider").value, 10),
+          top_p: parseFloat(document.getElementById("topp-slider").value),
+          reasoning_effort: document.getElementById("reasoning-effort").value,
+        }),
+      });
+      await consumeSseStream(res, (ev) => {
+        if (ev.type === "reasoning") assistantMsg.reasoning += ev.text;
+        else if (ev.type === "delta") assistantMsg.content += ev.text;
+        else if (ev.type === "error") {
+          assistantMsg.error = true;
+          assistantMsg.content = ev.message;
+        } else if (ev.type === "done") assistantMsg.meta = "Done";
+        renderMessages();
+      });
+    }
   } catch (err) {
     if (err.name !== "AbortError") {
       assistantMsg.error = true;
@@ -752,8 +797,8 @@ async function saveKeysFromModal() {
   });
   state.localKeys = nextLocal;
   saveLocalKeys(nextLocal);
-  if (document.getElementById("persist-env-checkbox").checked && Object.keys(payload).length) {
-    await fetch("/api/settings/keys", {
+  if (!state.staticMode && document.getElementById("persist-env-checkbox").checked && Object.keys(payload).length) {
+    await fetch("./api/settings/keys", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ keys: payload }),

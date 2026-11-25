@@ -26,7 +26,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 STATIC_DIR = BASE_DIR / "static"
 
 app = FastAPI(title="Multi-LLM Playground & Arena", version="0.1.0")
-app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static-assets")
 
 
 class ChatMessage(BaseModel):
@@ -230,3 +230,6 @@ async def orchestra_stream(body: OrchestraRequest) -> StreamingResponse:
             "X-Accel-Buffering": "no",
         },
     )
+
+
+app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static-root")
